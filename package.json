@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "eslint ./src/client/js/* ./src/server/* && node ./src/server/app.js"
+    "start": "eslint ./src/client/js/chat.js ./src/server/* && browserify -t babelify ./src/client/js/chat.js > ./src/client/js/bundle.js -t brfs && node ./src/server/app.js"
   },
   "repository": {
     "type": "git",
@@ -17,11 +17,17 @@
   },
   "homepage": "https://github.com/BarYohai33/chatbotnode#readme",
   "devDependencies": {
-    "eslint": "^4.16.0"
+    "eslint": "^4.16.0",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0"
   },
   "dependencies": {
     "ent": "^2.2.0",
     "express": "^4.16.2",
-    "socket.io": "^2.0.4"
+    "socket.io": "^2.0.4",
+    "babelify": "^8.0.0",
+    "brfs": "^1.4.4",
+    "browserify": "^15.2.0",
+    "browserify-fs": "^1.0.0"
   }
 }

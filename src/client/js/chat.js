@@ -1,5 +1,6 @@
 class Chat {
   constructor () {
+    const io = require('socket.io-client');
     this.socket = io.connect('http://localhost:8082');
     this.zone_chat = document.querySelector('#zone_chat');
     this.inputSendMessage = document.querySelector('.input--send-message');
