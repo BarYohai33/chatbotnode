@@ -1,0 +1,27 @@
+{
+  "name": "chatbotnode",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "eslint ./src/client/js/* ./src/server/* && node ./src/server/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BarYohai33/chatbotnode.git"
+  },
+  "author": "Nathan <marcianonathan1@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BarYohai33/chatbotnode/issues"
+  },
+  "homepage": "https://github.com/BarYohai33/chatbotnode#readme",
+  "devDependencies": {
+    "eslint": "^4.16.0"
+  },
+  "dependencies": {
+    "ent": "^2.2.0",
+    "express": "^4.16.2",
+    "socket.io": "^2.0.4"
+  }
+}
