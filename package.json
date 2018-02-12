@@ -22,12 +22,13 @@
     "babel-core": "^6.26.0"
   },
   "dependencies": {
-    "ent": "^2.2.0",
-    "express": "^4.16.2",
-    "socket.io": "^2.0.4",
     "babelify": "^8.0.0",
     "brfs": "^1.4.4",
     "browserify": "^15.2.0",
-    "browserify-fs": "^1.0.0"
+    "browserify-fs": "^1.0.0",
+    "ent": "^2.2.0",
+    "express": "^4.16.2",
+    "path": "^0.12.7",
+    "socket.io": "^2.0.4"
   }
 }
