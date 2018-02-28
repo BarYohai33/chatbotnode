@@ -48,26 +48,4 @@ app.get('/api/callback', function (request, response) {
       console.log('... token is valid until: ' + tokenExpiration);
       console.log('... after token expiration, re-authorize using refresh_token: ' + refresh_token);
 
-      uber.products.getAllForAddressAsync('1455 Market St, San Francisco, CA 94103, US')
-        .then(function (res) {
-          console.log(res);
-        })
-        .error(function (err) {
-          console.error(err);
-        });
-
-      // redirect the user back to your actual app
-      response.redirect('/web/index.html');
-    })
-    .error(function (err) {
-      console.error(err);
-    });
-});
-
-//   uber.getAuthorizeUrl(['history','profile', 'request', 'places']);
-//   uber.estimates.getPriceForRouteByAddressAsync("Paris 19", "Paris 15").then(res => {
-//     res.write(JSON.stringify(res));
-//   });
-// })
-
 server.listen(8082);
