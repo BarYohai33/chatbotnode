@@ -41,11 +41,34 @@ app.get('/api/login', function (request, response) {
 });
 app.get('/api/callback', function (request, response) {
   uber.authorizationAsync({'authorization_code': request.query.code})
-    .spread(function (access_token, refresh_token, authorizedScopes, tokenExpiration) {
-      // store the user id and associated access_token, refresh_token, scopes and token expiration date
-      console.log('New access_token retrieved: ' + access_token);
-      console.log('... token allows access to scopes: ' + authorizedScopes);
-      console.log('... token is valid until: ' + tokenExpiration);
-      console.log('... after token expiration, re-authorize using refresh_token: ' + refresh_token);
+  .spread(function (access_token, refresh_token, authorizedScopes, tokenExpiration) {
+    // store the user id and associated access_token, refresh_token, scopes and token expiration date
+    console.log('New access_token retrieved: ' + access_token);
+    console.log('... token allows access to scopes: ' + authorizedScopes);
+    console.log('... token is valid until: ' + tokenExpiration);
+    console.log('... after token expiration, re-authorize using refresh_token: ' + refresh_token);
 
+    uber.requests.getEstimatesAsync({
+      "start_latitude": 48.8684025,
+      "start_longitude": 2.4180487,
+      "end_latitude": 48.8774485,
+      "end_longitude": 2.3846564
+    })
+    .then(function (res) {
+      response.json(res)
+      console.log(res);
+    })
+    .error(function (err) {
+      response.end()
+      console.error(err);
+    });   
+
+    // redirect the user back to your actual app
+    // response.redirect('/web/index.html');
+  })
+  .error(function (err) {
+    response.end()
+    console.error(err);
+  });
+});
 server.listen(8082);
