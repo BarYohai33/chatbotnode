@@ -1,4 +1,192 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],3:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -28,7 +216,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],2:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -59,7 +247,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -146,7 +334,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -215,7 +403,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -315,9 +503,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],6:[function(require,module,exports){
-
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -342,7 +528,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -507,7 +693,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -515,7 +701,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -527,7 +713,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":11,"engine.io-parser":21}],11:[function(require,module,exports){
+},{"./socket":12,"engine.io-parser":22}],12:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -1274,7 +1460,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":12,"./transports/index":13,"component-emitter":8,"debug":19,"engine.io-parser":21,"indexof":27,"parseqs":29,"parseuri":30}],12:[function(require,module,exports){
+},{"./transport":13,"./transports/index":14,"component-emitter":9,"debug":20,"engine.io-parser":22,"indexof":28,"parseqs":30,"parseuri":31}],13:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -1433,7 +1619,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":8,"engine.io-parser":21}],13:[function(require,module,exports){
+},{"component-emitter":9,"engine.io-parser":22}],14:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -1490,7 +1676,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":14,"./polling-xhr":15,"./websocket":17,"xmlhttprequest-ssl":18}],14:[function(require,module,exports){
+},{"./polling-jsonp":15,"./polling-xhr":16,"./websocket":18,"xmlhttprequest-ssl":19}],15:[function(require,module,exports){
 (function (global){
 
 /**
@@ -1725,7 +1911,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":16,"component-inherit":9}],15:[function(require,module,exports){
+},{"./polling":17,"component-inherit":10}],16:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -2142,7 +2328,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":16,"component-emitter":8,"component-inherit":9,"debug":19,"xmlhttprequest-ssl":18}],16:[function(require,module,exports){
+},{"./polling":17,"component-emitter":9,"component-inherit":10,"debug":20,"xmlhttprequest-ssl":19}],17:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -2389,7 +2575,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":12,"component-inherit":9,"debug":19,"engine.io-parser":21,"parseqs":29,"xmlhttprequest-ssl":18,"yeast":46}],17:[function(require,module,exports){
+},{"../transport":13,"component-inherit":10,"debug":20,"engine.io-parser":22,"parseqs":30,"xmlhttprequest-ssl":19,"yeast":46}],18:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -2679,7 +2865,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":12,"component-inherit":9,"debug":19,"engine.io-parser":21,"parseqs":29,"ws":6,"yeast":46}],18:[function(require,module,exports){
+},{"../transport":13,"component-inherit":10,"debug":20,"engine.io-parser":22,"parseqs":30,"ws":1,"yeast":46}],19:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -2720,7 +2906,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":26}],19:[function(require,module,exports){
+},{"has-cors":27}],20:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -2909,7 +3095,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":20,"_process":31}],20:[function(require,module,exports){
+},{"./debug":21,"_process":2}],21:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -3113,7 +3299,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":28}],21:[function(require,module,exports){
+},{"ms":29}],22:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -3723,7 +3909,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":22,"./utf8":23,"after":1,"arraybuffer.slice":2,"base64-arraybuffer":4,"blob":5,"has-binary2":24}],22:[function(require,module,exports){
+},{"./keys":23,"./utf8":24,"after":3,"arraybuffer.slice":4,"base64-arraybuffer":6,"blob":7,"has-binary2":25}],23:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -3744,7 +3930,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -4003,7 +4189,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 (function (global){
 /* global Blob File */
 
@@ -4069,14 +4255,14 @@ function hasBinary (obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"isarray":25}],25:[function(require,module,exports){
+},{"isarray":26}],26:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -4095,7 +4281,7 @@ try {
   module.exports = false;
 }
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -4106,7 +4292,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -4260,7 +4446,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -4299,7 +4485,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -4339,192 +4525,6 @@ module.exports = function parseuri(str) {
 
     return uri;
 };
-
-},{}],31:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
 
 },{}],32:[function(require,module,exports){
 
@@ -5197,7 +5197,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":34,"./socket":35,"backo2":3,"component-bind":7,"component-emitter":8,"debug":37,"engine.io-client":10,"indexof":27,"socket.io-parser":40}],34:[function(require,module,exports){
+},{"./on":34,"./socket":35,"backo2":5,"component-bind":8,"component-emitter":9,"debug":37,"engine.io-client":11,"indexof":28,"socket.io-parser":40}],34:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -5643,7 +5643,7 @@ Socket.prototype.compress = function (compress) {
   return this;
 };
 
-},{"./on":34,"component-bind":7,"component-emitter":8,"debug":37,"parseqs":29,"socket.io-parser":40,"to-array":45}],36:[function(require,module,exports){
+},{"./on":34,"component-bind":8,"component-emitter":9,"debug":37,"parseqs":30,"socket.io-parser":40,"to-array":45}],36:[function(require,module,exports){
 (function (global){
 
 /**
@@ -5722,11 +5722,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":37,"parseuri":30}],37:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"./debug":38,"_process":31,"dup":19}],38:[function(require,module,exports){
+},{"debug":37,"parseuri":31}],37:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"dup":20,"ms":28}],39:[function(require,module,exports){
+},{"./debug":38,"_process":2,"dup":20}],38:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"dup":21,"ms":29}],39:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -6273,7 +6273,7 @@ function error() {
   };
 }
 
-},{"./binary":39,"./is-buffer":41,"component-emitter":8,"debug":42,"has-binary2":24}],41:[function(require,module,exports){
+},{"./binary":39,"./is-buffer":41,"component-emitter":9,"debug":42,"has-binary2":25}],41:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -6291,12 +6291,12 @@ function isBuf(obj) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],42:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"./debug":43,"_process":31,"dup":19}],43:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"dup":20,"ms":28}],44:[function(require,module,exports){
-arguments[4][25][0].apply(exports,arguments)
-},{"dup":25}],45:[function(require,module,exports){
+},{"./debug":43,"_process":2,"dup":20}],43:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"dup":21,"ms":29}],44:[function(require,module,exports){
+arguments[4][26][0].apply(exports,arguments)
+},{"dup":26}],45:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -6385,17 +6385,64 @@ module.exports = yeast;
 class Chat {
   constructor() {
     const io = require('socket.io-client');
+    /*  ---  Checking Chat commands ---  */
 
     this.socket = io.connect('http://localhost:8082');
     this.zoneChat = document.querySelector('#zone_chat');
     this.inputSendMessage = document.querySelector('.input--send-message');
     this.inputPseudo = document.querySelector('.input--pseudo');
+    this.mustStartBy = 'Salut, pour m\'utiliser : écrivez chatbot.';
+    this.startChatbot = 'chatbot';
+    this.pseudoChatBot = 'Chatbot';
+    this.purpose = 'Veuillez écrire l\'une des commandes que vous voulez :';
+    this.startUber = '/uber start';
+    this.startYoutube = '/youtube start';
+    this.startCarrefour = '/carrefour start';
+    this.isLog = 'Veuillez saisir un pseudo afin de vous logger. Merci';
+    this.interval = setInterval(() => {
+      this.insereMessage(this.pseudoChatBot, this.mustStartBy);
+    }, 30000);
+    this.firstPrevention = setTimeout(() => {
+      this.insereMessage(this.pseudoChatBot, this.mustStartBy);
+    }, 5000);
+
+    /* ---   Checking Uber commands --- */
+
+    this.pseudoUber = 'Uber';
+    this.welcomeUber = 'Bienvenue chez Uber vous pouvez : ';
+    this.estimateUber = '/uber estimation : vous donne le trajet [origine] vers [destination]';
+    this.uberStatus = '/uber status : vous donne le status de votre dernière estimation';
+    this.originUber = 'Vous partez de ? (nom de la ville / ma position actuelle)';
+    this.errorUber = 'Je ne comprend pas, suivez correctement les étapes ! On reprend : ';
+    this.shortEstimateUber = this.estimateUber.split(' ').slice(0, 2).join(' ');
+    this.shortUberStatus = this.uberStatus.split(' ').slice(0, 2).join(' ');
+    this.fromUber;
+    this.toUber;
+    this.isValidFromTo;
   }
   init() {
     this.pseudo = '';
     this.socket.on('message', data => {
       this.insereMessage(data.pseudo, data.message);
     });
+  }
+  callUberServices() {
+    if (this.inputSendMessage.value === this.startUber) {
+      const cmdUber = { 'estimate': this.estimateUber, 'user status': this.uberStatus };
+
+      setTimeout(() => {
+        this.insereMessage(this.pseudoUber, this.welcomeUber);
+      }, 1000);
+
+      for (let cmd in cmdUber) {
+        this.insereMessage(this.pseudoUber, cmdUber[cmd]);
+      }
+    }
+    if (this.inputSendMessage.value === this.shortEstimateUber) {
+      setTimeout(() => {
+        this.insereMessage(this.pseudoUber, this.originUber);
+      }, 1000);
+    }
   }
   setPseudo() {
     this.inputPseudo.addEventListener('keypress', e => {
@@ -6407,15 +6454,41 @@ class Chat {
       }
     });
   }
+
+  isValidCmd(instruction) {
+    var that = this;
+
+    if (instruction.startsWith(this.startChatbot)) {
+      const cmds = { 'cmdUber': this.startUber, 'cmdYoutube': this.startYoutube, 'cmdCarrefour': this.startCarrefour };
+
+      clearInterval(this.interval);
+      setTimeout(() => {
+        that.insereMessage(this.pseudoChatBot, this.purpose);
+      }, 1000);
+
+      for (var cmd in cmds) {
+        this.insereMessage(this.pseudoChatBot, cmds[cmd]);
+      }
+    } else if (instruction.startsWith('/')) {
+      clearInterval(this.interval);
+    }
+  }
   sendMessage() {
     this.inputSendMessage.addEventListener('keypress', e => {
       var key = e.keyCode;
 
       if (key === 13) {
-        this.insereMessage(this.pseudo, this.inputSendMessage.value);
-        this.socket.emit('nouveau_client', this.pseudo);
-        this.socket.emit('message', this.inputSendMessage.value);
-        this.inputSendMessage.value = '';
+        if (this.pseudo === '') {
+          this.insereMessage(this.pseudoChatBot, this.isLog);
+          this.inputSendMessage.value = '';
+        } else {
+          this.insereMessage(this.pseudo, this.inputSendMessage.value);
+          this.callUberServices();
+          this.isValidCmd(this.inputSendMessage.value);
+          this.socket.emit('nouveau_client', this.pseudo);
+          this.socket.emit('message', this.inputSendMessage.value);
+          this.inputSendMessage.value = '';
+        }
       }
     });
   }
