@@ -6,6 +6,8 @@ class Chat {
     this.socket = io.connect('http://localhost:8082');
     this.zoneChat = document.querySelector('#zone_chat');
     this.inputSendMessage = document.querySelector('.input--send-message');
+    this.inputSendVideo = document.querySelector('.input--send-video');
+    this.container = document.querySelector('.container').style.visibility = 'hidden';
     this.inputPseudo = document.querySelector('.input--pseudo');
     this.mustStartBy = 'Salut, pour m\'utiliser : écrivez chatbot.';
     this.startChatbot = 'chatbot';
@@ -14,6 +16,7 @@ class Chat {
     this.startUber = '/uber start';
     this.startYoutube = '/youtube start';
     this.startCarrefour = '/carrefour start';
+    this.startTranslation = '/translation start';
     this.isLog = 'Veuillez saisir un pseudo afin de vous logger. Merci';
     this.interval = setInterval(() => {
       this.insereMessage(this.pseudoChatBot, this.mustStartBy);
@@ -35,11 +38,35 @@ class Chat {
     this.fromUber;
     this.toUber;
     this.isValidFromTo;
+
+    /* --- Checking Youtube commands --- */
+
+    this.pseudoYoutube = 'youtube';
+    this.welcomeYoutube = 'Bienvenue chez youtube vous pouvez :';
+    this.searchVideo = '/search video : vous permet de rechercher la vidéo que vous voulez';
+    this.askYoutube = '/search video';
+    this.nameVideo = 'Entrez le nom de la video';
+
+    /* --- Checking Translate commands --- */
+    this.alertEnglish = 'la traduction est activé';
+    this.tradActive = false;
+    this.stopTranslation = '/stop translation';
+    this.toStopTranslation = 'pour arrêter la traduction entrer :  /stop translation';
+    this.translationPseudo = 'Traduction';
   }
   init () {
     this.pseudo = '';
     this.socket.on('message', (data) => {
       this.insereMessage(data.pseudo, data.message);
+    });
+    this.socket.on('newVideo', id => {
+      let maxResults = id.length;
+
+      for (let i = 0; i < maxResults; i ++) {
+        if (typeof id[i] === 'string') {
+          this.launchVideo(id[i]);
+        }
+      }
     });
   }
   callUberServices () {
@@ -60,6 +87,18 @@ class Chat {
       }, 1000);
     }
   }
+  callYoutubeServices () {
+    if (this.inputSendMessage.value === this.startYoutube) {
+      setTimeout(() => {
+        this.insereMessage(this.pseudoYoutube, this.searchVideo);
+        this.insereMessage(this.pseudoYoutube, this.welcomeYoutube);
+      }, 1000);
+    }
+    if (this.inputSendMessage.value === this.askYoutube) {
+      this.insereMessage(this.pseudoYoutube, this.nameVideo);
+      document.querySelector('.container').style.visibility = '';
+    }
+  }
   setPseudo () {
     this.inputPseudo.addEventListener('keypress', (e) => {
       var key = e.keyCode;
@@ -75,7 +114,7 @@ class Chat {
     var that = this;
 
     if (instruction.startsWith(this.startChatbot)) {
-      const cmds = {'cmdUber': this.startUber, 'cmdYoutube': this.startYoutube, 'cmdCarrefour': this.startCarrefour};
+      const cmds = {'cmdUber': this.startUber, 'cmdYoutube': this.startYoutube, 'cmdCarrefour': this.startCarrefour, 'cmdTranslation': this.startTranslation};
 
       clearInterval(this.interval);
       setTimeout(() => {
@@ -89,6 +128,16 @@ class Chat {
       clearInterval(this.interval);
     }
   }
+  getVideo () {
+    this.inputSendVideo.addEventListener('keypress', (e) => {
+      var key = e.keyCode;
+
+      if (key === 13) {
+        this.socket.emit('video', this.inputSendVideo.value);
+        this.inputSendVideo.value = '';
+      }
+    });
+  }
   sendMessage () {
     this.inputSendMessage.addEventListener('keypress', (e) => {
       var key = e.keyCode;
@@ -100,6 +149,10 @@ class Chat {
         } else {
           this.insereMessage(this.pseudo, this.inputSendMessage.value);
           this.callUberServices();
+          this.callYoutubeServices();
+          this.callTranslateEnglish();
+          this.callTranslateGerman();
+          this.callTranslateSpanish();
           this.isValidCmd(this.inputSendMessage.value);
           this.socket.emit('nouveau_client', this.pseudo);
           this.socket.emit('message', this.inputSendMessage.value);
@@ -115,10 +168,49 @@ class Chat {
     this.zoneChat.prepend(p);
     return false;
   }
+  callTranslateEnglish () {
+    if (this.inputSendMessage.value === this.startTranslation) {
+      this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
+      this.insereMessage(this.pseudo, this.alertEnglish);
+      this.socket.on('trad', (data) => {
+        this.insereMessage(this.translationPseudo, data);
+      });
+    }
+  }
+  callTranslateGerman () {
+    if (this.inputSendMessage.value === this.startTranslation) {
+      this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
+      // this.insereMessage(this.pseudo, this.alertEnglish);
+      this.socket.on('trad1', (data) => {
+        this.insereMessage(this.translationPseudo, data);
+      });
+    }
+  }
+  callTranslateSpanish () {
+    if (this.inputSendMessage.value === this.startTranslation) {
+      this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
+      //this.insereMessage(this.pseudo, this.alertEnglish);
+      this.socket.on('trad2', (data) => {
+        this.insereMessage(this.translationPseudo, data);
+      });
+    }
+  }
+  launchVideo (id) {
+    const iFrame = document.createElement('iframe');
+
+    iFrame.setAttribute('id', 'player');
+    iFrame.setAttribute('type', 'text/html');
+    iFrame.setAttribute('width', '640');
+    iFrame.setAttribute('height', '360');
+    iFrame.setAttribute('src', `http://www.youtube.com/embed/${id}`);
+
+    this.zoneChat.appendChild(iFrame);
+  }
   run () {
     this.init();
     this.setPseudo();
     this.sendMessage();
+    this.getVideo();
   }
 }
 const chat = new Chat();
