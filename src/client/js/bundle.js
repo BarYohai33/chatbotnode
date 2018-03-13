@@ -6391,6 +6391,9 @@ class Chat {
     this.zoneChat = document.querySelector('#zone_chat');
     this.inputSendMessage = document.querySelector('.input--send-message');
     this.inputSendVideo = document.querySelector('.input--send-video');
+    this.inputSendFrom = document.querySelector('.input--send-from');
+    this.inputSendTo = document.querySelector('.input--send-to');
+    this.containerUber = document.querySelector('.containerUber').style.visibility = 'hidden';
     this.container = document.querySelector('.container').style.visibility = 'hidden';
     this.inputPseudo = document.querySelector('.input--pseudo');
     this.mustStartBy = 'Salut, pour m\'utiliser : écrivez chatbot.';
@@ -6414,14 +6417,14 @@ class Chat {
     this.pseudoUber = 'Uber';
     this.welcomeUber = 'Bienvenue chez Uber vous pouvez : ';
     this.estimateUber = '/uber estimation : vous donne le trajet [origine] vers [destination]';
-    this.uberStatus = '/uber status : vous donne le status de votre dernière estimation';
-    this.originUber = 'Vous partez de ? (nom de la ville / ma position actuelle)';
+    this.originUber = 'Dans un premier temps vous écrirez votre addresse de départ comme ceci (10 avenue des champs élysées, Paris, France) ';
+    this.toUber = 'Il faudra faire de même pour la destination';
+    this.toUber2 = 'départ :';
+    this.destinationUber = 'destination';
     this.errorUber = 'Je ne comprend pas, suivez correctement les étapes ! On reprend : ';
     this.shortEstimateUber = this.estimateUber.split(' ').slice(0, 2).join(' ');
-    this.shortUberStatus = this.uberStatus.split(' ').slice(0, 2).join(' ');
-    this.fromUber;
-    this.toUber;
     this.isValidFromTo;
+    this.arrayTest = [];
 
     /* --- Checking Youtube commands --- */
 
@@ -6432,11 +6435,13 @@ class Chat {
     this.nameVideo = 'Entrez le nom de la video';
 
     /* --- Checking Translate commands --- */
-    this.alertEnglish = 'la traduction anglaise est activé';
+    this.alertEnglish = 'la traduction est activé';
     this.tradActive = false;
     this.stopTranslation = '/stop translation';
     this.toStopTranslation = 'pour arrêter la traduction entrer :  /stop translation';
     this.translationPseudo = 'Traduction';
+
+    /* --- Cheking Carrefour commands --- */
   }
   init() {
     this.pseudo = '';
@@ -6452,10 +6457,13 @@ class Chat {
         }
       }
     });
+    this.socket.on('addresses', address => {
+      this.launchMap(address);
+    });
   }
   callUberServices() {
     if (this.inputSendMessage.value === this.startUber) {
-      const cmdUber = { 'estimate': this.estimateUber, 'user status': this.uberStatus };
+      const cmdUber = { 'estimate': this.estimateUber };
 
       setTimeout(() => {
         this.insereMessage(this.pseudoUber, this.welcomeUber);
@@ -6468,7 +6476,9 @@ class Chat {
     if (this.inputSendMessage.value === this.shortEstimateUber) {
       setTimeout(() => {
         this.insereMessage(this.pseudoUber, this.originUber);
+        this.insereMessage(this.pseudoUber, this.toUber);
       }, 1000);
+      document.querySelector('.containerUber').style.visibility = '';
     }
   }
   callYoutubeServices() {
@@ -6522,6 +6532,39 @@ class Chat {
       }
     });
   }
+  getUberPositions() {
+    this.inputSendFrom.addEventListener('keypress', e => {
+      var key = e.keyCode;
+
+      if (key === 13) {
+        console.log(this.inputSendFrom.value);
+        this.socket.emit('from', this.inputSendFrom.value);
+        this.inputSendFrom.value = '';
+        this.testUber();
+      }
+    });
+    this.inputSendTo.addEventListener('keypress', e => {
+      var key = e.keyCode;
+
+      if (key === 13) {
+        console.log(this.inputSendTo.value);
+        this.socket.emit('to', this.inputSendTo.value);
+        this.inputSendTo.value = '';
+        this.test2Uber();
+        this.socket.emit('positionsUber', this.arrayTest);
+      }
+    });
+  }
+
+  getLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(positions => {
+        this.tabPositions = [positions.coords.latitude, positions.coords.longitude];
+        this.socket.emit('position', this.tabPositions);
+      });
+    }
+  }
+
   sendMessage() {
     this.inputSendMessage.addEventListener('keypress', e => {
       var key = e.keyCode;
@@ -6534,11 +6577,10 @@ class Chat {
           this.insereMessage(this.pseudo, this.inputSendMessage.value);
           this.callUberServices();
           this.callYoutubeServices();
-          if (this.inputSendMessage.value !== this.stopTranslation) {
-            this.callTranslateEnglish();
-          }
+          this.callTranslateEnglish();
           this.callTranslateGerman();
           this.callTranslateSpanish();
+          this.callCarrefourServices();
           this.isValidCmd(this.inputSendMessage.value);
           this.socket.emit('nouveau_client', this.pseudo);
           this.socket.emit('message', this.inputSendMessage.value);
@@ -6566,7 +6608,7 @@ class Chat {
   callTranslateGerman() {
     if (this.inputSendMessage.value === this.startTranslation) {
       this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
-      this.insereMessage(this.pseudo, this.alertEnglish);
+      // this.insereMessage(this.pseudo, this.alertEnglish);
       this.socket.on('trad1', data => {
         this.insereMessage(this.translationPseudo, data);
       });
@@ -6575,11 +6617,30 @@ class Chat {
   callTranslateSpanish() {
     if (this.inputSendMessage.value === this.startTranslation) {
       this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
-      this.insereMessage(this.pseudo, this.alertEnglish);
       this.socket.on('trad2', data => {
         this.insereMessage(this.translationPseudo, data);
       });
     }
+  }
+  callCarrefourServices() {
+    if (this.inputSendMessage.value === this.startCarrefour) {
+      this.getLocation();
+      this.insereMessage(this.pseudoChatBot, 'voici les magasins dans 5km de rayon.');
+    }
+  }
+  testUber() {
+    this.socket.on('positionFrom', data => {
+      this.arrayTest.push(data[0]);
+      console.log(this.arrayTest[0]);
+      this.arrayTest.push(data[1]);
+    });
+  }
+  test2Uber() {
+    this.socket.on('positionTo', dataa => {
+      this.arrayTest.push(dataa[0]);
+      this.arrayTest.push(dataa[1]);
+      console.log(this.arrayTest[3]);
+    });
   }
   launchVideo(id) {
     const iFrame = document.createElement('iframe');
@@ -6592,11 +6653,23 @@ class Chat {
 
     this.zoneChat.appendChild(iFrame);
   }
+  launchMap(address) {
+    const iFrame = document.createElement('iframe');
+
+    iFrame.setAttribute('id', 'maps');
+    iFrame.setAttribute('type', 'text/html');
+    iFrame.setAttribute('width', '640');
+    iFrame.setAttribute('height', '360');
+    iFrame.setAttribute('src', `https://www.google.com/maps/embed/v1/place?q=${address}&key=AIzaSyClJPJ2f7V47o8l46R1fpZdhDpxDqTZChU`);
+
+    this.zoneChat.appendChild(iFrame);
+  }
   run() {
     this.init();
     this.setPseudo();
     this.sendMessage();
     this.getVideo();
+    this.getUberPositions();
   }
 }
 const chat = new Chat();

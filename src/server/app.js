@@ -6,7 +6,8 @@ let ent = require('ent');
 let YouTube = require('youtube-node');
 let googleTranslate = require('google-translate')('AIzaSyA9sNGTf3gzoXsl0a0KKdtlmXvF_IgymtM');
 const path = require('path');
-// const Uber = require('node-uber');
+const request = require('request');
+const googleGeocoding = require('google-geocoding');
 
 app.use (express.static(path.join(`${__dirname}/../client`)));
 
@@ -22,6 +23,113 @@ io.sockets.on('connection', socket => {
   socket.on('message', message => {
     message = ent.encode(message);
     socket.broadcast.emit('message', {'pseudo': socket.pseudo, 'message': message});
+  });
+
+  const reverseFrom = (address, callback) => {
+    googleGeocoding.geocode(address, (err, location) => {
+      if (err) {
+        console.log('Error: ' + err);
+      } else if (! location) {
+        console.log('No result.');
+      } else {
+        let positionsDepart = [location.lat, location.lng];
+
+        callback(positionsDepart);
+        return;
+      }
+    });
+  };
+
+  const reverseTo = (address1, callback) => {
+    googleGeocoding.geocode(address1, (err, location) => {
+      if (err) {
+        console.log('Error: ' + err);
+      } else if (! location) {
+        console.log('No result.');
+      } else {
+        let positionsArrived = [location.lat, location.lng];
+
+        callback(positionsArrived);
+        return;
+      }
+    });
+  };
+
+  socket.on('from', address => {
+    reverseFrom(address, result => {
+      socket.emit('positionFrom', result);
+    });
+  });
+  socket.on('to', address1 => {
+    reverseTo(address1, result1 => {
+      socket.emit('positionTo', result1);
+    });
+  });
+
+  /*  --- Uber --- */
+  const getEstimateUber = (test) => {
+    const options = {
+      'method': 'GET',
+      'url': 'https://api.uber.com/v1.2/estimates/price',
+      'qs': {
+        'start_longitude': test[1],
+        'start_latitude': test[0],
+        'end_latitude': test[3],
+        'end_longitude': test[2]
+      },
+      'headers': {
+        'Authorization': 'Token ' + '22tMzB_eU5xYcDM3JkBxlKyp_Pqu-774Fi6bNbrI',
+        'Accept-Language': 'en_US',
+        'Content-Type': 'application/json'
+      }
+    };
+
+    request(options, (error, response, body) => {
+      if (error) {
+        console.error('Failed: %s', error.message);
+      }
+      console.log(body);
+    });
+  };
+
+  socket.on('positionsUber', test => {
+    console.log(test[0]);
+    console.log(test[1]);
+    console.log(test[2]);
+    console.log(test[3]);
+    getEstimateUber(test);
+  });
+
+  const getShopByPosition = (positions) => {
+    const options = {'method': 'GET',
+      'url': 'https://api.fr.carrefour.io/v1/openapi/stores',
+      'qs':
+       {'longitude': positions[1],
+         'latitude': positions[0],
+         'radius': '5000',
+         'format': 'PRX'
+       },
+      'headers':
+       {'accept': 'application/json',
+         'x-ibm-client-id': '0e1dce3d-f5a4-42ba-8f2d-bf68a531bc5e',
+         'x-ibm-client-secret': 'T5wB2qS4uV0aN2fD4sK1iU4nS6hS8nF4wE0sO4aD8qL8hI6mG8'
+       }
+    };
+
+    request(options, (error, response, body) => {
+      if (error) {
+        console.error('Failed: %s', error.message);
+      }
+      let myJson = JSON.parse(body);
+
+      for (let i = 0; i < myJson.list.length; i ++) {
+        socket.emit('addresses', myJson.list[i].address);
+      }
+    });
+  };
+
+  socket.on('position', coord1 => {
+    getShopByPosition(coord1);
   });
   /* --- Google translate ---*/
 
@@ -91,50 +199,6 @@ io.sockets.on('connection', socket => {
     io.emit('youtube', {'pseudo': socket.pseudo, 'message': message});
   });
 });
-/*  --- Uber --- */
-// let uber = new Uber({
-//   'client_id': 'eIQAknkwkagFuvw3xT7pmt3wUwNYDqf2',
-//   'client_secret': 'CzQOVYMA3Zk1bixX4pl4cUjK8AB57bHrr3aOE1rm',
-//   'server_token': '22tMzB_eU5xYcDM3JkBxlKyp_Pqu-774Fi6bNbrI',
-//   'redirect_uri': 'http://localhost:8082',
-//   'name': 'chatbotnode',
-//   'language': 'fr_FR', // optional, defaults to en_US
-//   'sandbox': true // optional, defaults to false
-// });
 
-// app.get('/api/login', (request, response) => {
-//   var url = uber.getAuthorizeUrl(['history', 'profile', 'request', 'places']);
-
-//   response.redirect(url);
-// });
-// app.get('/api/callback', function (request, response) {
-//   uber.authorizationAsync({'authorization_code': request.query.code})
-//     .spread(function (access_token, refresh_token, authorizedScopes, tokenExpiration) {
-//     // store the user id and associated access_token, refresh_token, scopes and token expiration date
-//       console.log('New access_token retrieved: ' + access_token);
-//       console.log('... token allows access to scopes: ' + authorizedScopes);
-//       console.log('... token is valid until: ' + tokenExpiration);
-//       console.log('... after token expiration, re-authorize using refresh_token: ' + refresh_token);
-
-//       uber.requests.getEstimatesAsync({
-//         'start_latitude': 48.8684025,
-//         'start_longitude': 2.4180487,
-//         'end_latitude': 48.8774485,
-//         'end_longitude': 2.3846564
-//       })
-//         .then(function (res) {
-//           response.json(res);
-//           console.log(res);
-//         })
-//         .error(function (err) {
-//           response.end();
-//           console.error(err);
-//         });
-//     })
-//     .error(function (err) {
-//       response.end();
-//       console.error(err);
-//     });
-// });
 server.listen(8082);
 
