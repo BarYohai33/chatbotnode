@@ -24,7 +24,7 @@ io.sockets.on('connection', socket => {
     message = ent.encode(message);
     socket.broadcast.emit('message', {'pseudo': socket.pseudo, 'message': message});
   });
-
+  /*  --- Uber --- */
   const reverseValue = (address, callback) => {
     googleGeocoding.geocode(address, (err, location) => {
       if (err) {
@@ -42,8 +42,6 @@ io.sockets.on('connection', socket => {
       }
     });
   };
-
-  /*  --- Uber --- */
   const getEstimateUber = (data) => {
     const options = {
       'method': 'GET',
@@ -92,7 +90,7 @@ io.sockets.on('connection', socket => {
       getEstimateUber(data);
     }, 5000);
   });
-
+  /*  --- Uber --- */
   const getShopByPosition = (positions) => {
     const options = {
       'method': 'GET',
