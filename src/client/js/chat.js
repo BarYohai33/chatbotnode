@@ -153,23 +153,39 @@ class Chat {
       var key = e.keyCode;
 
       if (key === 13) {
-        console.log(this.inputSendFrom.value);
-        this.socket.emit('from', this.inputSendFrom.value);
+        this.arrayTest.push(this.inputSendFrom.value);
+        console.log(this.arrayTest[0]);
         this.inputSendFrom.value = '';
-        this.testUber();
       }
     });
     this.inputSendTo.addEventListener('keypress', (e) => {
       var key = e.keyCode;
 
       if (key === 13) {
-        console.log(this.inputSendTo.value);
-        this.socket.emit('to', this.inputSendTo.value);
-        this.inputSendTo.value = '';
-        this.test2Uber();
+        this.arrayTest.push(this.inputSendTo.value);
+        console.log(this.arrayTest[1]);
         this.socket.emit('positionsUber', this.arrayTest);
+        this.inputSendTo.value = '';
+        this.insereMessage(this.pseudoUber, 'Vous avez demandez cette itinéraire, patientez');
+        this.launchMapUber(this.arrayTest[0], this.arrayTest[1]);
       }
     });
+
+    setTimeout(() => {
+      this.socket.on('uberName', (data) => {
+        this.insereMessage(this.pseudoUber + 'modele', data);
+      });
+    }, 6000);
+    setTimeout(() => {
+      this.socket.on('distanceUber', (data) => {
+        this.insereMessage(this.pseudoUber + 'distance', data);
+      });
+    }, 7000);
+    setTimeout(() => {
+      this.socket.on('priceUber', (data) => {
+        this.insereMessage(this.pseudoUber + 'duration', data);
+      });
+    }, 8000);
   }
 
   getLocation () {
@@ -224,7 +240,6 @@ class Chat {
   callTranslateGerman () {
     if (this.inputSendMessage.value === this.startTranslation) {
       this.insereMessage(this.pseudoChatBot, this.toStopTranslation);
-      // this.insereMessage(this.pseudo, this.alertEnglish);
       this.socket.on('trad1', (data) => {
         this.insereMessage(this.translationPseudo, data);
       });
@@ -243,20 +258,6 @@ class Chat {
       this.getLocation();
       this.insereMessage(this.pseudoChatBot, 'voici les magasins dans 5km de rayon.');
     }
-  }
-  testUber () {
-    this.socket.on('positionFrom', (data) => {
-      this.arrayTest.push(data[0]);
-      console.log(this.arrayTest[0]);
-      this.arrayTest.push(data[1]);
-    });
-  }
-  test2Uber () {
-    this.socket.on('positionTo', (dataa) => {
-      this.arrayTest.push(dataa[0]);
-      this.arrayTest.push(dataa[1]);
-      console.log(this.arrayTest[3]);
-    });
   }
   launchVideo (id) {
     const iFrame = document.createElement('iframe');
@@ -277,6 +278,17 @@ class Chat {
     iFrame.setAttribute('width', '640');
     iFrame.setAttribute('height', '360');
     iFrame.setAttribute('src', `https://www.google.com/maps/embed/v1/place?q=${address}&key=AIzaSyClJPJ2f7V47o8l46R1fpZdhDpxDqTZChU`);
+
+    this.zoneChat.appendChild(iFrame);
+  }
+  launchMapUber (address, address2) {
+    const iFrame = document.createElement('iframe');
+
+    iFrame.setAttribute('id', 'maps');
+    iFrame.setAttribute('type', 'text/html');
+    iFrame.setAttribute('width', '640');
+    iFrame.setAttribute('height', '360');
+    iFrame.setAttribute('src', `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBzhXQGlpp20V71dGCT_67REdUlWe-Gpog&origin=${address}&destination=${address2}&avoid=tolls|highways`);
 
     this.zoneChat.appendChild(iFrame);
   }

@@ -25,14 +25,17 @@ io.sockets.on('connection', socket => {
     socket.broadcast.emit('message', {'pseudo': socket.pseudo, 'message': message});
   });
 
-  const reverseFrom = (address, callback) => {
+  const reverseValue = (address, callback) => {
     googleGeocoding.geocode(address, (err, location) => {
       if (err) {
         console.log('Error: ' + err);
       } else if (! location) {
         console.log('No result.');
       } else {
-        let positionsDepart = [location.lat, location.lng];
+        let positionsDepart = {
+          'latitude': location.lat,
+          'longitude': location.lng
+        };
 
         callback(positionsDepart);
         return;
@@ -40,42 +43,16 @@ io.sockets.on('connection', socket => {
     });
   };
 
-  const reverseTo = (address1, callback) => {
-    googleGeocoding.geocode(address1, (err, location) => {
-      if (err) {
-        console.log('Error: ' + err);
-      } else if (! location) {
-        console.log('No result.');
-      } else {
-        let positionsArrived = [location.lat, location.lng];
-
-        callback(positionsArrived);
-        return;
-      }
-    });
-  };
-
-  socket.on('from', address => {
-    reverseFrom(address, result => {
-      socket.emit('positionFrom', result);
-    });
-  });
-  socket.on('to', address1 => {
-    reverseTo(address1, result1 => {
-      socket.emit('positionTo', result1);
-    });
-  });
-
   /*  --- Uber --- */
-  const getEstimateUber = (test) => {
+  const getEstimateUber = (data) => {
     const options = {
       'method': 'GET',
       'url': 'https://api.uber.com/v1.2/estimates/price',
       'qs': {
-        'start_longitude': test[1],
-        'start_latitude': test[0],
-        'end_latitude': test[3],
-        'end_longitude': test[2]
+        'start_longitude': data.depart.longitude,
+        'start_latitude': data.depart.latitude,
+        'end_latitude': data.arrive.latitude,
+        'end_longitude': data.arrive.longitude
       },
       'headers': {
         'Authorization': 'Token ' + '22tMzB_eU5xYcDM3JkBxlKyp_Pqu-774Fi6bNbrI',
@@ -89,19 +66,36 @@ io.sockets.on('connection', socket => {
         console.error('Failed: %s', error.message);
       }
       console.log(body);
+      let myJson = JSON.parse(body);
+
+      for (let i = 0; i < myJson.prices.length; i ++) {
+        socket.emit('uberName', myJson.prices[i].localized_display_name);
+        socket.emit('distanceUber', myJson.prices[i].distance);
+        socket.emit('priceUber', myJson.prices[i].estimate);
+      }
     });
   };
 
   socket.on('positionsUber', test => {
-    console.log(test[0]);
-    console.log(test[1]);
-    console.log(test[2]);
-    console.log(test[3]);
-    getEstimateUber(test);
+    let data = {
+      'depart': null,
+      'arrive': null
+    };
+
+    reverseValue(test[0], result => {
+      data.depart = result;
+    });
+    reverseValue(test[1], result => {
+      data.arrive = result;
+    });
+    setTimeout(() => {
+      getEstimateUber(data);
+    }, 5000);
   });
 
   const getShopByPosition = (positions) => {
-    const options = {'method': 'GET',
+    const options = {
+      'method': 'GET',
       'url': 'https://api.fr.carrefour.io/v1/openapi/stores',
       'qs':
        {'longitude': positions[1],
